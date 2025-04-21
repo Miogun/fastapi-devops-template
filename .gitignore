@@ -1,3 +1,4 @@
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -6,18 +7,23 @@ __pycache__/
 env/
 venv/
 
+# Docker
 *.log
 *.pid
 
+# Ansible
 *.retry
 
+# Terraform
 .terraform/
 terraform.tfstate
 terraform.tfstate.backup
 *.tfvars
 
+# SSH
 *.pem
 
+# OS / Editor
 .DS_Store
 .idea/
 .vscode/

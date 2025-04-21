@@ -1,0 +1,33 @@
+- name: Deploy FastAPI Docker App
+  hosts: flask
+  become: yes
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Install Python3 pip
+      apt:
+        name: python3-pip
+        state: present
+
+    - name: Copy application code
+      copy:
+        src: ../app/
+        dest: /home/ubuntu/fastapi_app/
+
+    - name: Build FastAPI Docker image
+      community.docker.docker_image:
+        name: fastapi-app
+        path: /home/ubuntu/fastapi_app
+        state: present
+
+    - name: Run FastAPI container
+      community.docker.docker_container:
+        name: fastapi-app
+        image: fastapi-app
+        state: started
+        ports:
+          - "8000:8000"

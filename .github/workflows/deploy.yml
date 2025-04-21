@@ -1,0 +1,62 @@
+name: Terraform + Ansible CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: terraform
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: terraform
+
+      - name: Get EC2 Public IP
+        id: getip
+        run: |
+          cd terraform
+          terraform output -raw ec2_public_ip > ../ec2_ip.txt
+
+      - name: Install Ansible & Docker Module
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+          ansible-galaxy collection install community.docker
+
+      - name: Generate Dynamic Inventory
+        run: |
+          EC2_IP=$(cat ec2_ip.txt)
+          echo "[flask]" > ansible/inventory.ini
+          echo "$EC2_IP ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/your-key.pem" >> ansible/inventory.ini
+
+      - name: Decode Private Key (Optional)
+        run: |
+          echo "${{ secrets.AWS_PRIVATE_KEY }}" | base64 -d > ~/.ssh/your-key.pem
+          chmod 600 ~/.ssh/your-key.pem
+
+      - name: Run Ansible Playbook
+        run: |
+          ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
